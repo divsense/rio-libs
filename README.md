@@ -5,8 +5,6 @@ Divsense Common Rio Libs
 
   Parser monad
 
-  *Usage*
-
   ```javascript
 
   export x
