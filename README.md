@@ -10,7 +10,7 @@ Divsense Common Rio Libs
   ```javascript
 
   export x
-  import 'https://mart.divsense.com/divsense/rio/parser'
+  import 'mart::divsense/rio/src/parser'
 
   w = some(letter) >>= pure . join('')
   d = some(digit) >>= pure . join('')
