@@ -1,0 +1,95 @@
+export Parser, eval, pure, fail, item, sat,
+       char, string, some, many, digit, letter,
+       re, space, token, noneof, rest
+
+// eval :: (Parser a, String) -> [a, String]
+eval = (p, inp) -> parse(p)(inp)
+
+// pure :: a -> Parser a
+pure = x -> Parser(inp -> [x, inp])
+
+// fail :: () -> Parser null
+fail = () -> Parser(_ -> null)
+
+// rest :: Parser a -> Parser a
+rest = Parser(inp -> [inp, ''])
+
+// many :: Parser a -> Parser [a]
+many = p -> some(p) <|> pure([])
+
+// some :: Parser a -> Parser [a]
+some = p -> pure(prepend) <*> p <*> many(p)
+
+// item :: Parser Char
+item = () -> Parser(ifElse(isEmpty, always(null), inp -> [head(inp), tail(inp)]))
+
+// sat :: (Char -> Boolean) -> Parser Char
+sat = f -> item() >>= x -> f(x) ? pure(x) : fail()
+
+// char :: Char -> Parser Char
+char = x -> sat(equals(x))
+
+// string :: String -> Parser String
+string = ifElse(isEmpty, pure, xs -> char(head(xs)) >> string(tail(xs)) >> pure(xs))
+
+// re :: Char -> Parser Char
+re = x -> sat(test(x))
+
+// digit :: Char -> Parser Char
+digit = re(/[0-9]/)
+
+// letter :: Parser Char
+letter = re(/[a-zA-Z]/)
+
+// space :: Parser []
+space = many(re(/\s/))
+
+// token :: Parser a -> Parser a
+token = p -> space >> p >>= x -> space >> pure(x)
+
+// noneof :: Parser a -> Parser a
+noneof = x -> sat(not . equals(x))
+
+Parser = parse -> ({
+
+    // parse :: String -> [a, String]
+    parse: parse,
+
+    // Functor. map :: (a -> b) -> Parser b
+    map: f -> Parser( mapValue(f) . parse ),
+
+    // Monad. chain :: (a -> Parser b) -> Parser b
+    chain: f -> Parser( chainValue(f) . parse ),
+
+    // Applicative. ap :: (() -> Parser a) -> Parser b
+    ap: fp -> Parser( apValue(fp) . parse ),
+
+    // Alternative. alt :: (() -> Parser a) -> Parser a
+    alt: fp -> Parser(inp -> (altValue(fp, inp) . parse)( inp ))
+})
+
+// overValue :: (a -> b) -> [a, String] -> [b, String]
+overValue = f -> over(lensIndex(0), f)
+
+// parse :: Parser a -> String -> [a, String]
+parse = p -> prop('parse', p)
+
+// run :: String -> Parser a -> [a, String]
+run = inp -> p -> parse(p)(inp)
+
+// mapValue :: (a -> b) -> [a, String] -> [b, String]
+mapValue = f -> unless(isNil, overValue(f))
+
+// chainValue :: (a -> Parser b) -> [b, String] -> [b, String]
+chainValue = f -> unless(isNil, ([value,inp]) -> eval(f(value), inp))
+
+// applyFn :: (a -> b) -> Parser b
+applyFn = f -> unless(isNil, overValue(f))
+
+// apValue :: Parser a -> [(a -> b), String] -> [b, String]
+apValue = fp -> unless(isNil, ([f, inp]) -> (applyFn(f) . parse(fp()))( inp ))
+
+// altValue :: Parser a -> [(a -> b), String] -> [b, String]
+altValue = (fp, inp) -> when(isNil, _ -> eval(fp(), inp))
+
+
