@@ -1,6 +1,6 @@
 export Parser, eval, pure, fail, item, sat,
        char, string, some, many, digit, letter,
-       re, space, token, noneof, rest
+       re, space, token, noneof, rest, eof
 
 // eval :: (Parser a, String) -> [a, String]
 eval = (p, inp) -> parse(p)(inp)
@@ -19,6 +19,9 @@ many = p -> some(p) <|> pure([])
 
 // some :: Parser a -> Parser [a]
 some = p -> pure(prepend) <*> p <*> many(p)
+
+// eof :: Parser ()
+eof = () -> Parser(ifElse(isEmpty, always([]), always(null)))
 
 // item :: Parser Char
 item = () -> Parser(ifElse(isEmpty, always(null), inp -> [head(inp), tail(inp)]))
